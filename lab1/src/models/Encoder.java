@@ -66,14 +66,14 @@ public class Encoder {
                 if (type.equals("Y"))
                     encoded.add(store);
                 else
-                    encoded.add(average4Block(store));
+                    encoded.add(resizeBlock(average4Block(store)));
             }
 
         return encoded;
     }
 
     private static BlockStore subMatrix(String type, int i_pos, int j_pos, double[][] matrix) {
-        BlockStore store = new BlockStore(8, type, i_pos, j_pos);
+        BlockStore store = new BlockStore(8, type);
 
         for (int i = 0; i < 8; i++)
             for (int j = 0; j < 8; j++)
@@ -83,7 +83,7 @@ public class Encoder {
     }
 
     private static BlockStore average4Block(BlockStore toSample) {
-        BlockStore sampleStore = new BlockStore(4, toSample.getStoreType(), toSample.getLinePos(), toSample.getColumnPos());
+        BlockStore sampleStore = new BlockStore(4, toSample.getStoreType());
         int line = 0;
         int column = 0;
         for (int i = 0; i < 4; i++) {
@@ -93,12 +93,38 @@ public class Encoder {
                         toSample.getYuvStore()[line][column + 1] +
                         toSample.getYuvStore()[line + 1][column] +
                         toSample.getYuvStore()[line + 1][column + 1])
-                        / 4.0;
+                        / 4;
                 column += 2;
             }
             line += 2;
             column = 0;
         }
+        return sampleStore;
+    }
+
+//    public List<BlockStore> getListResized(List<BlockStore> encoded) {
+//        List<BlockStore> resized = new ArrayList<>();
+//        encoded.forEach(b -> resized.add(resizeBlock(b)));
+//        return resized;
+//    }
+
+    private static BlockStore resizeBlock(BlockStore blockStore) {
+        BlockStore sampleStore = new BlockStore(8, blockStore.getStoreType());
+        int line = 0;
+        int column = 0;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                double value = blockStore.getYuvStore()[i][j];
+                sampleStore.getYuvStore()[line][column] = value;
+                sampleStore.getYuvStore()[line][column + 1] = value;
+                sampleStore.getYuvStore()[line + 1][column] = value;
+                sampleStore.getYuvStore()[line + 1][column + 1] = value;
+                column += 2;
+            }
+            line += 2;
+            column = 0;
+        }
+
         return sampleStore;
     }
 

@@ -9,6 +9,7 @@ public class PPM {
     private int height;
     private int maxValue;
     private String format;
+    private String line;
     private int[][] r;
     private int[][] g;
     private int[][] b;
@@ -22,6 +23,7 @@ public class PPM {
         this.height = ppm.height;
         this.maxValue = ppm.maxValue;
         this.format = ppm.format;
+        this.line = ppm.line;
         this.r = ppm.r;
         this.g = ppm.g;
         this.b = ppm.b;
@@ -29,7 +31,13 @@ public class PPM {
         this.u = ppm.u;
         this.v = ppm.v;
     }
-
+    public PPM(String fileName,int width,int height,int maxValue,String format) {
+        this.fileName = fileName;
+        this.width = width;
+        this.height = height;
+        this.maxValue = maxValue;
+        this.format = format;
+    }
     public PPM(String fileName) {
         this.fileName = fileName;
         readPPM(fileName);
@@ -45,11 +53,11 @@ public class PPM {
             }
     }
 
-    private PPM convertToRGB() {
+    public PPM convertToRGB() {
         PPM newPPM = new PPM(this);
         for (int line = 0; line < height; line++)
             for (int column = 0; column < width; column++) {
-                Double R = y[line][column] + 1.402 * (v[line][column] - 128);
+                Double R = y[line][column] + 1.4019 * (v[line][column] - 128);
                 Double G = y[line][column] - 0.344136 * (u[line][column] - 128) - 0.714136 * (v[line][column] - 128);
                 Double B = y[line][column] + 1.7790 * (u[line][column] - 128);
 
@@ -73,6 +81,7 @@ public class PPM {
         PrintWriter printWriter = new PrintWriter(fileWriter);
 
         printWriter.println(format);
+        printWriter.println(line);
         printWriter.println(height + " " + width);
         printWriter.println(maxValue);
         for (int line = 0; line < height; line++) {
@@ -185,8 +194,7 @@ public class PPM {
         String st;
         try {
             format = Objects.requireNonNull(br).readLine();
-            br.readLine();
-
+            line=br.readLine();
             String thirdLine = br.readLine();
             height = Integer.parseInt(thirdLine.split(" ")[1]);
             width = Integer.parseInt(thirdLine.split(" ")[0]);
@@ -199,19 +207,14 @@ public class PPM {
             u = new double[height][width];
             v = new double[height][width];
 
-            int line = 0;
-            int column = 0;
-            while ((st = br.readLine()) != null && line != height) {
-                if (column == width) {
-                    column = 0;
-                    line++;
+
+            for (int i = 0; i < height; i++)
+                for (int j = 0; j < width; j++) {
+                    r[i][j] = Integer.parseInt(br.readLine());
+                    g[i][j] = Integer.parseInt(br.readLine());
+                    b[i][j] = Integer.parseInt(br.readLine());
                 }
 
-                r[line][column] = Integer.parseInt(st);
-                g[line][column] = Integer.parseInt(br.readLine());
-                b[line][column] = Integer.parseInt(br.readLine());
-                column++;
-            }
         } catch (IOException e) {
             System.out.println(e.getMessage());
         }
