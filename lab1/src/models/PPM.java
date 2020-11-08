@@ -82,7 +82,7 @@ public class PPM {
 
         printWriter.println(format);
         printWriter.println(line);
-        printWriter.println(height + " " + width);
+        printWriter.println(width + " " + height);
         printWriter.println(maxValue);
         for (int line = 0; line < height; line++) {
             for (int column = 0; column < width; column++) {

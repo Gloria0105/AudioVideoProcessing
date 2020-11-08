@@ -14,9 +14,8 @@ public class Main {
         encoder.printMatrix(encoder.getEncodedU());
         encoder.printMatrix(encoder.getEncodedV());
         Decoder decoder = new Decoder(encoder);
-        decoder.getImage().convertToRGB().writePPM("hai1.ppm");
-        PPM imageNew = new PPM("./data/hai1.ppm");
-        imageNew.writePPM("saZicem.ppm");
+        decoder.getImage().convertToRGB().writePPM("final.ppm");
+
 
     }
 }
