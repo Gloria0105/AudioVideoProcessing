@@ -9,12 +9,38 @@ public class Encoder {
     private List<BlockStore> encodedU;
     private List<BlockStore> encodedV;
 
+    private double[][] Q = {
+            {6, 4, 4, 6, 10, 16, 20, 24},
+            {5, 5, 6, 8, 10, 23, 24, 22},
+            {6, 5, 6, 10, 16, 23, 28, 22},
+            {6, 7, 9, 12, 20, 35, 32, 25},
+            {7, 9, 15, 22, 27, 44, 41, 31},
+            {10, 14, 22, 26, 32, 42, 45, 37},
+            {20, 26, 31, 35, 41, 48, 48, 40},
+            {29, 37, 38, 39, 45, 40, 41, 40}
+    };
 
     public Encoder(PPM image) {
         this.image = image;
         encodedY = splitInBlocks(image, "Y", image.getY());
         encodedU = splitInBlocks(image, "U", image.getU());
         encodedV = splitInBlocks(image, "V", image.getV());
+
+        encodedU = getListResized(encodedU);
+        encodedV = getListResized(encodedV);
+
+        substractValue(encodedY);
+        substractValue(encodedU);
+        substractValue(encodedV);
+
+        forwardDCT(encodedY);
+        forwardDCT(encodedU);
+        forwardDCT(encodedV);
+
+        quantizationPhase(encodedY);
+        quantizationPhase(encodedU);
+        quantizationPhase(encodedV);
+
 
     }
 
@@ -66,7 +92,7 @@ public class Encoder {
                 if (type.equals("Y"))
                     encoded.add(store);
                 else
-                    encoded.add(resizeBlock(average4Block(store)));
+                    encoded.add(average4Block(store));
             }
 
         return encoded;
@@ -77,7 +103,7 @@ public class Encoder {
 
         for (int i = 0; i < 8; i++)
             for (int j = 0; j < 8; j++)
-                store.getYuvStore()[i][j] = matrix[i + i_pos][j + j_pos];
+                store.getStore()[i][j] = matrix[i + i_pos][j + j_pos];
 
         return store;
     }
@@ -89,10 +115,10 @@ public class Encoder {
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
 
-                sampleStore.getYuvStore()[i][j] = (toSample.getYuvStore()[line][column] +
-                        toSample.getYuvStore()[line][column + 1] +
-                        toSample.getYuvStore()[line + 1][column] +
-                        toSample.getYuvStore()[line + 1][column + 1])
+                sampleStore.getStore()[i][j] = (toSample.getStore()[line][column] +
+                        toSample.getStore()[line][column + 1] +
+                        toSample.getStore()[line + 1][column] +
+                        toSample.getStore()[line + 1][column + 1])
                         / 4;
                 column += 2;
             }
@@ -102,11 +128,11 @@ public class Encoder {
         return sampleStore;
     }
 
-//    public List<BlockStore> getListResized(List<BlockStore> encoded) {
-//        List<BlockStore> resized = new ArrayList<>();
-//        encoded.forEach(b -> resized.add(resizeBlock(b)));
-//        return resized;
-//    }
+    public List<BlockStore> getListResized(List<BlockStore> encoded) {
+        List<BlockStore> resized = new ArrayList<>();
+        encoded.forEach(b -> resized.add(resizeBlock(b)));
+        return resized;
+    }
 
     private static BlockStore resizeBlock(BlockStore blockStore) {
         BlockStore sampleStore = new BlockStore(8, blockStore.getStoreType());
@@ -114,11 +140,11 @@ public class Encoder {
         int column = 0;
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                double value = blockStore.getYuvStore()[i][j];
-                sampleStore.getYuvStore()[line][column] = value;
-                sampleStore.getYuvStore()[line][column + 1] = value;
-                sampleStore.getYuvStore()[line + 1][column] = value;
-                sampleStore.getYuvStore()[line + 1][column + 1] = value;
+                double value = blockStore.getStore()[i][j];
+                sampleStore.getStore()[line][column] = value;
+                sampleStore.getStore()[line][column + 1] = value;
+                sampleStore.getStore()[line + 1][column] = value;
+                sampleStore.getStore()[line + 1][column + 1] = value;
                 column += 2;
             }
             line += 2;
@@ -127,5 +153,70 @@ public class Encoder {
 
         return sampleStore;
     }
+
+    // Lab 2 functions
+
+
+    private void substractValue(List<BlockStore> encoded) {
+        for (BlockStore blockStore : encoded) {
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    blockStore.getStore()[i][j] -= 128.0;
+                }
+            }
+        }
+    }
+
+    private void forwardDCT(List<BlockStore> encoded) {
+        for (BlockStore block : encoded)
+            block.setGStore(fDCT(block.getStore()));
+    }
+
+    int[][] fDCT(double[][] matrix) {
+        int[][] G = new int[8][8];
+        double constant = 0.25;
+        for (int u = 0; u < 8; u++)
+            for (int v = 0; v < 8; v++) {
+                G[u][v] = (int) (constant * alpha(u) * alpha(v) * sum(matrix, u, v));
+            }
+
+        return G;
+    }
+
+    private double sum(double[][] matrix, int u, int v) {
+        double sum = 0.0;
+        for (int x = 0; x < 8; x++) {
+            for (int y = 0; y < 8; y++) {
+                sum += matrix[x][y] * Math.cos(((2 * x + 1) * u * Math.PI) / 16) * Math.cos(((2 * y + 1) * v * Math.PI) / 16);
+            }
+        }
+        return sum;
+    }
+
+    private double alpha(int value) {
+        return value > 0 ? 1 : (1 / Math.sqrt(2.0));
+    }
+
+
+    private int[][] divideMatrixes(int[][] G, double[][] Q) {
+        int[][] result = new int[8][8];
+        double aux;
+        for (int i = 0; i < 8; i++)
+            for (int j = 0; j < 8; j++) {
+                aux = G[i][j] / Q[i][j];
+                if (aux < 0)
+                    result[i][j] = (int) Math.ceil(aux);
+                else
+                    result[i][j] = (int) Math.floor(aux);
+            }
+
+        return result;
+    }
+
+    private void quantizationPhase(List<BlockStore> encoded) {
+        for (BlockStore block : encoded)
+            block.setGStore(this.divideMatrixes(block.getGStore(), this.Q));
+    }
+
 
 }

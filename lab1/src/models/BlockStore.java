@@ -5,14 +5,14 @@ import java.util.Arrays;
 public class BlockStore {
     private int size;
     private String storeType;
-    private double[][] yuvStore;
-    private int[][] rgbStore;
+    private double[][] store;
+    private int[][] GStore;
 
     public BlockStore(int size, String storeType) {
         this.size = size;
         this.storeType = storeType;
-        this.yuvStore = new double[size][size];
-        this.rgbStore = new int[size][size];
+        this.store = new double[size][size];
+        this.GStore = new int[size][size];
 
     }
 
@@ -22,7 +22,7 @@ public class BlockStore {
     public String toString() {
         return "BlockStore{" +
                 "storeType='" + storeType + '\'' +
-                ", yuvStore=" + Arrays.toString(yuvStore) +
+                ", store=" + Arrays.toString(store) +
 
                 '}';
     }
@@ -44,19 +44,19 @@ public class BlockStore {
         this.storeType = storeType;
     }
 
-    public double[][] getYuvStore() {
-        return yuvStore;
+    public double[][] getStore() {
+        return store;
     }
 
-    public void setYuvStore(double[][] yuvStore) {
-        this.yuvStore = yuvStore;
+    public void setStore(double[][] store) {
+        this.store = store;
     }
 
-    public int[][] getRgbStore() {
-        return rgbStore;
+    public int[][] getGStore() {
+        return GStore;
     }
 
-    public void setRgbStore(int[][] rgbStore) {
-        this.rgbStore = rgbStore;
+    public void setGStore(int[][] GStore) {
+        this.GStore = GStore;
     }
 }
