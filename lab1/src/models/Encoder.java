@@ -204,10 +204,11 @@ public class Encoder {
         for (int i = 0; i < 8; i++)
             for (int j = 0; j < 8; j++) {
                 aux = G[i][j] / Q[i][j];
-                if (aux < 0)
-                    result[i][j] = (int) Math.ceil(aux);
-                else
-                    result[i][j] = (int) Math.floor(aux);
+//                if (aux < 0)
+//                    result[i][j] = (int) Math.ceil(aux);
+//                else
+//                    result[i][j] = (int) Math.floor(aux);
+                result[i][j] = (int) aux;
             }
 
         return result;
