@@ -1,14 +1,17 @@
 package models;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Decoder {
 
     private Encoder encoder;
+    List<Integer> entropy;
+    private int pos;
+    private List<BlockStore> encodedY = new ArrayList<>();
+    private List<BlockStore> encodedU = new ArrayList<>();
+    private List<BlockStore> encodedV = new ArrayList<>();
 
-    private List<BlockStore> encodedY;
-    private List<BlockStore> encodedU;
-    private List<BlockStore> encodedV;
 
     private double[][] Q = {
             {6, 4, 4, 6, 10, 16, 20, 24},
@@ -21,11 +24,15 @@ public class Decoder {
             {29, 37, 38, 39, 45, 40, 41, 40}
     };
 
-    public Decoder(Encoder encoder) {
+    public Decoder(Encoder encoder, List<Integer> entropy) {
         this.encoder = encoder;
-        encodedY = encoder.getEncodedY();
-        encodedU = encoder.getEncodedU();
-        encodedV = encoder.getEncodedV();
+        this.entropy = entropy;
+
+        entropyDecoding();
+
+//        encodedY = encoder.getEncodedY();
+//        encodedU = encoder.getEncodedU();
+//        encodedV = encoder.getEncodedV();
 
 
         deQuantizationPhase(encodedY);
@@ -152,6 +159,99 @@ public class Decoder {
                 }
             }
         }
+    }
+
+    //Lab 3
+    private void entropyDecoding() {
+         pos = 0;
+        while (pos < entropy.size()) {
+            BlockStore blockY = new BlockStore(8, "Y");
+            blockY.setGStore(getBlock());
+            encodedY.add(blockY);
+
+            BlockStore blockU = new BlockStore(8, "U");
+            blockU.setGStore(getBlock());
+            encodedU.add(blockU);
+
+            BlockStore blockV = new BlockStore(8, "V");
+            blockV.setGStore(getBlock());
+            encodedV.add(blockV);
+        }
+    }
+    private int[][] getBlock() {
+        int[][] matrix = new int[8][8];
+
+        pos++;
+        matrix[0][0] = entropy.get(pos++);
+
+        if (entropy.get(pos) == 0 && entropy.get(pos + 1) == 0) {
+            pos += 2;
+            return matrix;
+        }
+
+
+        int column = 0;
+        int row = 0;
+
+        do{
+            column++;
+            if (setMatrix(row, column, matrix)) return matrix;
+
+            do {
+                row++;
+                column--;
+                if (setMatrix(row, column, matrix)) return matrix;
+            } while (column != 0);
+
+            if (row == 7 )
+                break;
+            row++;
+            if (setMatrix(row, column, matrix)) return matrix;
+            do {
+                row--;
+                column++;
+                if (setMatrix(row, column, matrix)) return matrix;
+            } while (row != 0);
+        } while (true);
+
+
+        do {
+            column++;
+            if (setMatrix(row, column, matrix)) return matrix;
+            if (column == 7)
+                break;
+            do {
+                row--;
+                column++;
+                if (setMatrix(row, column, matrix)) return matrix;
+            } while (column != 7);
+            row++;
+            if (setMatrix(row, column, matrix)) return matrix;
+            do {
+                row++;
+                column--;
+                if (setMatrix(row, column, matrix)) return matrix;
+            } while (row != 7);
+        } while (true);
+
+        return matrix;
+    }
+    private boolean setMatrix(int row, int column, int[][] matrix) {
+        if (entropy.get(pos) == 0 && entropy.get(pos + 1) == 0) {
+            pos += 2;
+            return true;
+        }
+        // if is no zero in front of the number we place only the number
+        // else we put zero
+        matrix[row][column] = entropy.get(pos) == 0 ? entropy.get(pos + 2): 0;
+
+        //if are more zeros in front of the number we set where that number
+        // of zeros was the value decreased by 1
+        if (entropy.get(pos) != 0)
+            entropy.set(pos, entropy.get(pos) - 1);
+        else
+            pos += 3;
+        return false;
     }
 
 

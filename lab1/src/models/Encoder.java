@@ -1,6 +1,8 @@
 package models;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 public class Encoder {
@@ -8,6 +10,12 @@ public class Encoder {
     private List<BlockStore> encodedY;
     private List<BlockStore> encodedU;
     private List<BlockStore> encodedV;
+    private HashMap<Integer, List<Integer>> amplitudes = new HashMap<>();
+    List<Integer> entropy = new ArrayList<>();
+
+    public List<Integer> getEntropy() {
+        return entropy;
+    }
 
     private double[][] Q = {
             {6, 4, 4, 6, 10, 16, 20, 24},
@@ -41,8 +49,26 @@ public class Encoder {
         quantizationPhase(encodedU);
         quantizationPhase(encodedV);
 
+        amplitudes.put(1, Arrays.asList(-1, 1));
+        amplitudes.put(2, Arrays.asList(2, 3));
+        amplitudes.put(3, Arrays.asList(4, 7));
+        amplitudes.put(4, Arrays.asList(8, 15));
+        amplitudes.put(5, Arrays.asList(16, 31));
+        amplitudes.put(6, Arrays.asList(32, 63));
+        amplitudes.put(7, Arrays.asList(64, 127));
+        amplitudes.put(8, Arrays.asList(128, 255));
+        amplitudes.put(9, Arrays.asList(256, 511));
+        amplitudes.put(10, Arrays.asList(512, 1023));
+
+
+        for (int i = 0; i < encodedY.size(); i++) {
+            addEntropy(encodedY.get(i).getGStore());
+            addEntropy(encodedU.get(i).getGStore());
+            addEntropy(encodedV.get(i).getGStore());
+        }
 
     }
+
 
     public void printMatrix(List<BlockStore> encoded) {
         for (BlockStore block : encoded) {
@@ -219,5 +245,107 @@ public class Encoder {
             block.setGStore(this.divideMatrixes(block.getGStore(), this.Q));
     }
 
+    //Lab3
+
+    public void addEntropy(int[][] gstore) {
+        //list of coefficients
+        List<Integer> list = parseMatrix(gstore);
+
+
+        //Adding the first dc coefficient
+        entropy.addAll(Arrays.asList( getSize(list.get(0)), list.get(0) ));
+
+        //remove the zeros from final
+        int countFinalZeros = 0;
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if (list.get(i) == 0) {
+                countFinalZeros++;
+            } else break;
+        }
+        int initialSize = list.size();
+        if (countFinalZeros > 0) {
+            while (list.size() > (initialSize - countFinalZeros)) {
+                list.remove(list.size() - 1);
+            }
+        }
+        for (int i = 1; i < list.size()-1; i++) {
+            int countZeros = 0;
+            while (list.get(i) == 0) {
+                countZeros++;
+                i++;
+
+            }
+            entropy.addAll(Arrays.asList(  countZeros, getSize(list.get(i)), list.get(i) ));
+        }
+        entropy.addAll(Arrays.asList( 0, 0 ));
+
+    }
+
+    private int getSize(int amplitude) {
+        // calculating in wich interval it is placed to return the size corresponding
+
+        if (amplitude == 0) return 0;
+        else if (amplitude == 1 || amplitude == -1) {
+            return 1;
+        } else {
+            for (int i = 2; i <= 10; i++) {
+                if (amplitude < 0) {
+                    amplitude = (-1) * amplitude;
+                }
+                if (amplitude >= amplitudes.get(i).get(0) && amplitude <= amplitudes.get(i).get(1)) return i;
+
+            }
+        }
+        return -1;
+    }
+
+    private List<Integer> parseMatrix(int[][] gstore) {
+        List<Integer> list = new ArrayList<>();
+        int col = 0, row = 0, k = 0;
+        for (int i = 0; i < 7; i++) {
+            k++;
+            if (k % 2 == 1) {
+                list.add(gstore[row][col]);
+                col++;
+                for (int j = 0; j < k; j++) {
+                    list.add(gstore[row][col]);
+                    col--;
+                    row++;
+                }
+
+            } else {
+                list.add(gstore[row][col]);
+                row++;
+                for (int j = 0; j < k; j++) {
+                    list.add(gstore[row][col]);
+                    row--;
+                    col++;
+                }
+            }
+        }
+        for (int i = 0; i < 6; i++) {
+            k--;
+            if (k % 2 == 1) {
+                list.add(gstore[row][col]);
+                row++;
+                for (int j = 0; j < k; j++) {
+                    list.add(gstore[row][col]);
+                    col--;
+                    row++;
+                }
+
+            } else {
+                list.add(gstore[row][col]);
+                col++;
+                for (int j = 0; j < k; j++) {
+                    list.add(gstore[row][col]);
+                    row--;
+                    col++;
+                }
+            }
+        }
+        return list;
+
+    }
 
 }
